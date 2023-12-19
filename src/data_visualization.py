@@ -1,12 +1,9 @@
 import pandas as pd
-import pathlib
 from config.config import config_paths
-from typing import Union
 import numpy as np
-from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from matplotlib import pyplot as plt
 import seaborn as sns
-from src.utils import identify_feature_types, ResponseDictHandler
+from utils.utils import identify_feature_types, ResponseDictHandler
 import warnings
 from tqdm import tqdm
 from sklearn.manifold import TSNE

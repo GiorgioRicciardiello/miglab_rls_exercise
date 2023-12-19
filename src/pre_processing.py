@@ -3,9 +3,9 @@ from config.config import config_paths
 import numpy as np
 from sklearn.preprocessing import OrdinalEncoder
 import math
-from src.utils import (rls_func, encode_variables, flatten_nested_list, remap_unknown_category,
-                       identify_multiple_response_columns, one_hot_encoder_multi_resp_columns,
-                       ResponseDictHandler)
+from utils.utils import (rls_func, remap_unknown_category,
+                         identify_multiple_response_columns, one_hot_encoder_multi_resp_columns,
+                         ResponseDictHandler)
 
 if __name__ == '__main__':
     target = 'response_class'  # ordinal, engineered
@@ -20,7 +20,7 @@ if __name__ == '__main__':
     #%% re-map do not know responses
     raw_data:pd.DataFrame = remap_unknown_category(df=raw_data)
     #%% define the target
-    response_dict_handler = ResponseDictHandler()
+    response_dict_handler = ResponseDictHandler(response_split='ideal')
     # Drop rows where either 'pos_exp_better_cat' or 'neg_exp_worse_cat' contains NaN values
     raw_data = raw_data.dropna(subset=['pos_exp_better_cat', 'neg_exp_worse_cat'])
     conditions = [
@@ -46,7 +46,10 @@ if __name__ == '__main__':
         print("All unique values are present in response_dict.")
     else:
         print(f"Missing values: {missing_values}")
-    raw_data['response_class'] = raw_data['response_class'].map(response_dict)
+    # raw_data['response_class'] = raw_data['response_class'].map(response_dict)
+    # # Drop rows with NaN values in the 'response_class' column
+    # raw_data.dropna(subset=['response_class'], inplace=True)
+    # raw_data.reset_index(inplace=True, drop=True)
 
     #%% Handling outliers and possible errors in data imputation
     open_question_columns = {
@@ -104,7 +107,7 @@ if __name__ == '__main__':
     unwanted_columns = ['progress', 'startdate', 'enddate', 'status', 'duration (in seconds)', 'finished',
                         'recordeddate', 'distributionchannel', 'userlanguage',  'consent', 'rls_diag_physician',
                         'rls_diag_physician_recode', 'rls_med_responsive', 'rls_med_name', 'rls_med_dose',
-                        'rls_med_timing']
+                        'rls_med_timing', 'rls_diag_year']
     more_unwanted_columns = [col for col in raw_data.columns if 'essay' in col or
                            'ex_' in col or
                            '_why' in col or
@@ -131,9 +134,10 @@ if __name__ == '__main__':
     rls_experience_col = [col for col in raw_data.columns if 'exp' in col]
     print(f'Missing values in the RLS experience columns: \n {raw_data[rls_experience_col].isna().sum()}')
     # %% data engineering - Define and Assess RLS Characteristics
+    # SIRLS columns
     sirls_col = [sirls for sirls in raw_data.columns if 'sirls' in sirls]
     raw_data['rls_severity'] = raw_data.loc[:, sirls_col].sum(axis=1)
-    raw_data.drop(columns=sirls_col, inplace=True)  # maybe not drop
+    # raw_data.drop(columns=sirls_col, inplace=True)  # maybe not drop
     raw_data.rls_severity.describe()
     raw_data.rls_severity = raw_data.rls_severity.apply(rls_func, numerical=True)
     # rls_pregnancy
@@ -174,17 +178,26 @@ if __name__ == '__main__':
     # IPAQ Sedentary Time
     ipaq_columns = [col for col in raw_data.columns if 'ipaq_' in col]
     # All values should be positive expect for the no response coding
-    raw_data[ipaq_columns] = raw_data[ipaq_columns].map(
-        lambda val: np.abs(val) if isinstance(val, (int, float)) and not math.isnan(val) and val != -55 else 0
-    )
+    # raw_data[ipaq_columns] = raw_data[ipaq_columns].map(
+    #     lambda val: np.abs(val) if isinstance(val, (int, float)) and not math.isnan(val) and val != -55 else 0
+    # )
+
+    # Define the mapping function
+    def map_function(val):
+        return np.abs(val) if isinstance(val, (int, float)) and not math.isnan(val) and val != -55 else 0
+
+
+    # Apply the mapping function to the specified columns
+    raw_data[ipaq_columns] = raw_data[ipaq_columns].applymap(map_function)
+
     raw_data[ipaq_columns] = raw_data[ipaq_columns].astype(int)
     # Update the typing
     for col in ipaq_columns:
         raw_data[col] = pd.to_numeric(raw_data[col], errors='coerce', downcast='integer')
 
-    # raw_data['ipaq_sit_min'] = (raw_data.ipaq_7_1 * 60) + raw_data.ipaq_7_3   # hours to minutes then add minutes
-    # raw_data.drop(columns=['ipaq_7_1','ipaq_7_3'], inplace=True)
-    #
+    raw_data['ipaq_sit_min'] = (raw_data.ipaq_7_1 * 60) + raw_data.ipaq_7_3   # hours to minutes then add minutes
+    raw_data.drop(columns=['ipaq_7_1','ipaq_7_3'], inplace=True)
+
     # raw_data['ipaq_sit_hrs'] = raw_data.ipaq_sit_min/ 60
     # raw_data.ipaq_sit_hrs.where(raw_data.ipaq_sit_hrs < 24, np.nan, inplace=True)
 
