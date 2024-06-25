@@ -12,3 +12,6 @@ Background: Restless legs syndrome (RLS) is a prevalent, sensorimotor sleep diso
 Methods: Participants (N=528) completed a nationwide survey including items assessing RLS, physical activity and sedentary levels, and experiences with exercise and RLS. Participants were classified as perceived responders and non-responders. Perceived responders were sub-classified as positive responders (i.e., exercise improves RLS) and negative responders (i.e., exercise worsens RLS). 
 
 Conclusions: The present study presents unique factors that might account for individual differences in the response to exercise. Such individual differences and specific attributes should be considered in exercise-based management to further optimize personalized treatment plans to prevent and manage symptoms in people with RLS.
+
+## Note
+Data was structured in Python and the models were run in R. 
